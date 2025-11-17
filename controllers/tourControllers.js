@@ -1,63 +1,94 @@
-const Tour = require("../models/tourModel");
+const { default: mongoose } = require("mongoose");
+const Tour = require("../models/tourModel.js");
 
 // GET /tours
-const getAllTours = (req, res) => {
-  const tours = Tour.getAll();
-  res.json(tours);
+const getAllTours = async (req, res) => {
+  try {
+    const tours = await Tour.find({}).sort({ createdAt: -1 });
+    res.status(200).json(tours);
+  } catch (error) {
+    if (error.name === "ValidationError") {
+      return res
+        .status(400)
+        .json({ message: "Validation error", error: error.message });
+    } else {
+      res.status(500).json({ message: error.message });
+    }
+  }
 };
 
 // POST /tours
-const createTour = (req, res) => {
-  const newTour = Tour.addOne({ ...req.body }); // Spread the req.body object
-
-  if (newTour) {
-    res.status(201).json(newTour); // 201 Created
-  } else {
-    // Handle error (e.g., failed to create tour)
-    res.status(400).json({ message: "Invalid tour data. Ensure all fields are provided, including 'season' and 'specialOffer'." });
+const createTour = async (req, res) => {
+  try {
+    const newTour = await Tour.create({ ...req.body }); // Spread the req.body object
+    res.status(201).json(newTour);
+  } catch (error) {
+    if (error.name === "validationError") {
+      return res.status(400).json({ message: error.message });
+    }
+    res.status(500).json({ message: error.message });
   }
 };
- 
+
 // GET /tours/:tourId
-const getTourById = (req, res) => {
-  const tourId = req.params.tourId;
-  const tour = Tour.findById(tourId);
-  if (tour) {
-    res.json(tour);
-  } else {
-    res.status(404).json({ message: "Tour not found" });
+const getTourById = async (req, res) => {
+  const { tourId } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(tourId)) {
+    return res.status(400).json({ message: "Invalid tour ID" });
+  }
+  try {
+    const tour = await Tour.findById(tourId);
+    if (tour) {
+      res.json(tour);
+    } else {
+      res.status(404).json({ message: "Tour not found" });
+    }
+  } catch (error) {
+    if (error.name === "MongoNetworkError") {
+      return res
+        .status(503)
+        .json({ message: "Service Unavailable. Please try again later." });
+    }
+    res.status(500).json({ message: error.message });
   }
 };
 
 // PUT /tours/:tourId
-const updateTour = (req, res) => {
-  const tourId = req.params.tourId;
-  if (isNaN(tourId)) {
+
+const updateTour = async (req, res) => {
+  const { tourId } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(tourId)) {
     return res.status(400).json({ message: "Invalid tour ID" });
   }
-  const updatedTour = Tour.updateOneById(tourId, { ...req.body }); // Spread the req.body object
-
-  if (updatedTour) {
-    res.json(updatedTour);
-  } else {
-    // Handle update failure (e.g., tour not found)
-    res.status(404).json({ message: "Tour not found" });
+  try {
+    const updatedTour = await Tour.findOneAndUpdate({ _id: tourId }, req.body, {
+      new: true,
+    });
+    if (updatedTour) {
+      res.json(updatedTour);
+    } else {
+      res.status(404).json({ message: "Tour not found" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
 
 // DELETE /tours/:tourId
-const deleteTour = (req, res) => {
-  const tourId = req.params.tourId;
-  if (isNaN(tourId)) {
+const deleteTour = async (req, res) => {
+  const { tourId } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(tourId)) {
     return res.status(400).json({ message: "Invalid tour ID" });
   }
-  const isDeleted = Tour.deleteOneById(tourId);
-
-  if (isDeleted) {
-    res.status(204).send(); // 204 No Content
-  } else {
-    // Handle deletion failure (e.g., tour not found)
-    res.status(404).json({ message: "Tour not found" });
+  try {
+    const deletedTour = await Tour.findOneAndDelete(tourId);
+    if (deletedTour) {
+      res.json({ message: "Tour deleted successfully" });
+    } else {
+      res.status(404).json({ message: "Tour not found" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
 

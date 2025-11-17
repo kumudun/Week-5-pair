@@ -1,27 +1,32 @@
 const express = require("express");
+const dotenv = require("dotenv");
+
+dotenv.config();
+
 const app = express();
+const morgan = require("morgan");
+
 const tourRouter = require("./routes/tourRouter");
 const userRouter = require("./routes/userRouter");
 const { unknownEndpoint } = require("./middleware/customMiddleware");
+const connectDB = require("./config/db");
 
-const morgan = require("morgan");
+connectDB();
+
+// Middleware
 app.use(morgan("dev"));
-
-// Middleware to parse JSON
 app.use(express.json());
- 
-// Use the tourRouter for all "/tours" routes
-app.use("/api/tours", tourRouter);
 
-// Use the userRouter for all /users routes
+// Routers
+app.use("/api/tours", tourRouter);
 app.use("/api/users", userRouter);
 
+// Unknown route handler
 app.use(unknownEndpoint);
 // app.use(errorHandler);
 
 const port = process.env.PORT || 4000;
-// Start the server
+
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
- 
