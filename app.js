@@ -8,7 +8,10 @@ const morgan = require("morgan");
 
 const tourRouter = require("./routes/tourRouter");
 const userRouter = require("./routes/userRouter");
-const { unknownEndpoint } = require("./middleware/customMiddleware");
+const {
+  unknownEndpoint,
+  errorHandler,
+} = require("./middleware/customMiddleware");
 const connectDB = require("./config/db");
 
 connectDB();
@@ -21,9 +24,16 @@ app.use(express.json());
 app.use("/api/tours", tourRouter);
 app.use("/api/users", userRouter);
 
+// Example route that throws an error
+app.get("/error", (req, res, next) => {
+  // Trigger an error
+  const error = new Error("Network problem");
+  next(error);
+});
+
 // Unknown route handler
 app.use(unknownEndpoint);
-// app.use(errorHandler);
+app.use(errorHandler);
 
 const port = process.env.PORT || 4000;
 

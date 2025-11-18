@@ -18,7 +18,7 @@ const requestLogger = (request, response, next) => {
   console.log("---");
   next();
 };
- 
+
 module.exports = {
   requestLogger,
   unknownEndpoint,
